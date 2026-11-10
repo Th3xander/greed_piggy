@@ -9,12 +9,13 @@ export default function PlayerCard({ player, isActive }) {
 
   return (
     <li
+      id={`player-card-${player.player_index}`}
       aria-current={isActive ? "true" : undefined}
       className={`list-none rounded-lg border p-3 text-white duration-300 ${
         isActive
           ? "bg-[#ffffff40] border-[#FFFF8F] hover:border-[#FFFF8F]"
           : "bg-[#ffffff10] border-[#FFFFFF40] hover:border-[#ffffff80]"
-      }`}
+      } ${player.shield_active ? "shadow-[0_0_12px_#3b82f6]" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-bold lg:text-xl">{player.name}</h3>
@@ -29,13 +30,17 @@ export default function PlayerCard({ player, isActive }) {
 
       <div className="mt-2 flex flex-wrap gap-1">
         {player.shield_active && (
-          <Chip className="bg-[#3b82f650] text-blue-100">Shield ready</Chip>
+          <Chip className="bg-[#3b82f650] text-blue-100">
+            <span aria-hidden="true">🛡 </span>Shield ready
+          </Chip>
         )}
         {player.double_active && (
           <Chip className="bg-[#a00f9660] text-purple-100">x2</Chip>
         )}
         {player.skip_next_turn && (
-          <Chip className="bg-[#22d3ee40] text-cyan-100">Skips next turn</Chip>
+          <Chip className="bg-[#22d3ee40] text-cyan-100">
+            <span aria-hidden="true">❄ </span>Skips next turn
+          </Chip>
         )}
       </div>
     </li>
