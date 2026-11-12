@@ -56,7 +56,12 @@ export default function ComputerSetup() {
 
     // startGame validates, calls POST /game/create and returns the game id (or null on error)
     const gameId = await startGame({ setupPlayers, winningTarget: target });
-    if (gameId) navigate(`/live-game/game/${gameId}`);
+     if (gameId) {
+      navigate(`/live-game/game/${gameId}`);
+    } else {
+      // The error banner sits at the top of the page, so scroll up to show it
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   return (
