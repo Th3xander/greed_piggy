@@ -121,7 +121,7 @@ async function loadRoom(gameId) {
 // Checks if a Player can play
 function assertCanPlay(session, playerIndex) {
 
-  if (session.status === WON) throw new ApiError(409, "GAME_OVER", `Game ${session.id} has concluded`)
+  if (session.status === "WON") throw new ApiError(409, "GAME_OVER", `Game ${session.id} has concluded`)
 
   if (session.active_player_index !== playerIndex) throw new ApiError(409, "NOT_YOUR_TURN", `It's not ${playerIndex + 1}'s turn yet`)
 
@@ -145,4 +145,102 @@ function validateTurnBody(body) {
   }
 
   return { game_id, player_index };
+}
+
+export async function rollDice(req, res) {
+  const { game_id, player_index } = validateTurnBody(req.body);
+  const { session, players } = await loadRoom(game_id);
+
+  assertCanPlay(session, player_index);
+
+  const player = players.find((p) => p.player_index === player_index);
+
+  const dice = crypto.randomInt(1, 7);
+  const bust = dice === 1;
+  let message;
+
+  if (bust) {
+    const { error: playerError } = await supabase
+      .from("players")
+      .update({ turn_score: 0 })
+      .eq("id", player.id);
+    if (playerError) throw playerError;
+
+    const next = nextPlayerIndex(session, players);
+
+    const { error: sessionError } = await supabase
+      .from("game_sessions")
+      .update({ active_player_index: next })
+      .eq("id", game_id);
+
+    if (sessionError) throw sessionError;
+
+    const nextPlayer = players.find((p) => p.player_index === next);
+    message = `${player.name} rolled a 1. Bust! It's ${nextPlayer.name}'s turn.`;
+
+  } else {
+    const newTurnScore = player.turn_score + dice;
+    const { error } = await supabase
+      .from("players")
+      .update({ turn_score: newTurnScore })
+      .eq("id", player.id);
+    if (error) throw error;
+
+    message = `${player.name} rolled a ${dice}. Current turn total: ${newTurnScore}`;
+  }
+
+  const updated = await loadRoom(game_id);
+
+  res.json({
+    success: true,
+    dice,
+    bust,
+    message,
+    active_player_index: updated.session.active_player_index,
+    players: updated.players.map((row) => formatPlayer(row, updated.powerups)),
+  });
+}
+
+export async function bankScore(req, res) {
+  const { game_id, player_index } = validateTurnBody(req.body);
+  const { session, players } = await loadRoom(game_id);
+  assertCanPlay(session, player_index);
+
+  const player = players.find((p) => p.player_index === player_index);
+  const banked = player.turn_score;
+  const newTotal = player.total_score + banked;
+
+  const { error: playerError } = await supabase
+    .from("players")
+    .update({ total_score: newTotal, turn_score: 0 })
+    .eq("id", player.id);
+
+  if (playerError) throw playerError;
+
+  const gameWon = newTotal >= session.winning_target;
+
+  const sessionChanges = gameWon
+    ? { status: "WON" }
+    : { active_player_index: nextPlayerIndex(session, players) };
+
+  const { error: sessionError } = await supabase
+    .from("game_sessions")
+    .update(sessionChanges)
+    .eq("id", game_id);
+
+  if (sessionError) throw sessionError;
+
+  const updated = await loadRoom(game_id);
+  const formattedPlayers = updated.players.map((row) => formatPlayer(row, updated.powerups));
+
+  res.json({
+    success: true,
+    game_won: gameWon,
+    winner: gameWon ? formattedPlayers.find((p) => p.player_index === player_index) : null,
+    message: gameWon
+      ? `${player.name} banked ${banked} points and wins with ${newTotal}!`
+      : `${player.name} banked ${banked} points! Total score: ${newTotal}`,
+    active_player_index: updated.session.active_player_index,
+    players: formattedPlayers,
+  });
 }

@@ -1,10 +1,15 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/ApiError.js";
-import { createGame, getGame } from "../controllers/game.controllers.js";
+import { bankScore, createGame, getGame, rollDice } from "../controllers/game.controllers.js";
 
 const router = Router();
 
-router.post("/create", asyncHandler(createGame));
+//GET
 router.get("/:game_id", asyncHandler(getGame));
+
+//POST
+router.post("/create", asyncHandler(createGame));
+router.post("/roll", asyncHandler(rollDice));
+router.post("/bank", asyncHandler(bankScore));
 
 export default router;
