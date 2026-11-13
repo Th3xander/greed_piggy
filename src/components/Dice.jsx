@@ -32,7 +32,14 @@ export function Dice({
   const buttonRef = useRef(null);
 
   useEffect(() => () => clearInterval(timer.current), []);
-
+  // Download and decode the bust sound now, so it starts the instant a 1 lands
+  // instead of loading on its first play.
+  useEffect(() => {
+    if (loseAudio) {
+      loseAudio.preload = "auto";
+      loseAudio.load();
+    }
+  }, [loseAudio]);
   // Shows the server's answer once the request is done.
   // Returns the response (or null) so whoever started the roll gets it too.
   const finishRoll = async (request) => {
@@ -47,7 +54,11 @@ export function Dice({
     const face = Array.isArray(res.dice) ? res.dice[0] : res.dice;
     setCurrentDice(face - 1);
     setDiceValue(face);
-    if (res.bust) loseAudio?.play();
+        if (res.bust && loseAudio) {
+      // The file starts with ~0.1s of silence; skip it so the sound lands with the banner.
+      loseAudio.currentTime = 0.1;
+      loseAudio.play();
+    }
     return res;
   };
 
@@ -67,8 +78,14 @@ export function Dice({
           diceRollAudio?.play();
           setCurrentDice(Math.floor(Math.random() * DIE_FACES));
           ticks++;
-        } else {
+                } else {
           clearInterval(timer.current);
+          // The roll sound (3.6s) is longer than the shuffle (3.0s). Stop it when the
+          // shuffle stops so no rattle is heard after the die has landed.
+          if (diceRollAudio) {
+            diceRollAudio.pause();
+            diceRollAudio.currentTime = 0;
+          }
           // Ask the server only once the shuffle is over, so the die and the
           // score both appear after the rolling stops.
           resolve(finishRoll(request()));
