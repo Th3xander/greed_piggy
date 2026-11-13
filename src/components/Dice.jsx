@@ -7,7 +7,6 @@ import diceRollSound from "src/sound_effect/dice_roll.mp3";
 import loseSound from "src/sound_effect/lose_sound.mp3";
 import useAudio from "src/hooks/useAudio";
 
-// The shuffle animation lasts SHUFFLE_TICKS * TICK_MS (3 seconds, same as before).
 const SHUFFLE_TICKS = 30;
 const TICK_MS = 100;
 
@@ -46,28 +45,28 @@ export function Dice({
     if (res.bust) loseAudio?.play();
   };
 
-  const handleDiceClick = () => {
-    if (rollInFlight.current || isRolling || isBusy || locked) return;
-    if (phase !== PHASE.PLAYING) return;
+    const handleDiceClick = () => {
+      if (rollInFlight.current || isRolling || isBusy || locked) return;
+      if (phase !== PHASE.PLAYING) return;
 
-    rollInFlight.current = true;
-    setIsRolling(true);
-    setChangeBackground(true);
+      rollInFlight.current = true;
+      setIsRolling(true);
+      setChangeBackground(true);
 
-    // Ask the server and start the shuffle at the same time
-    const request = roll();
-    let ticks = 0;
-    timer.current = setInterval(() => {
-      if (ticks < SHUFFLE_TICKS) {
-        diceRollAudio?.play();
-        setCurrentDice(Math.floor(Math.random() * DIE_FACES));
-        ticks++;
-      } else {
-        clearInterval(timer.current);
-        finishRoll(request);
-      }
-    }, TICK_MS);
-  };
+      let ticks = 0;
+      timer.current = setInterval(() => {
+        if (ticks < SHUFFLE_TICKS) {
+          diceRollAudio?.play();
+          setCurrentDice(Math.floor(Math.random() * DIE_FACES));
+          ticks++;
+        } else {
+          clearInterval(timer.current);
+          // Ask the server only once the shuffle is over, so the die and the
+          // score both appear after the rolling stops.
+          finishRoll(roll());
+        }
+      }, TICK_MS);
+    };
 
   const isDisabled = isRolling || isBusy || locked || phase !== PHASE.PLAYING;
   // Fade only when the die can't be used for a reason other than "rolling now"
