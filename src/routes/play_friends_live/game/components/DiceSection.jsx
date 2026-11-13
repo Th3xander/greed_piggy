@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState } from "react";
 import { useLiveGameContext } from "src/context/useLiveGameContext";
 import Menu from "./Menu";
@@ -6,8 +7,9 @@ import addPlayerSound from "src/sound_effect/add_player.mp3";
 import loseSound from "src/sound_effect/lose_sound.mp3";
 import celebrationSound from "src/sound_effect/celebration.mp3";
 import useAudio from "src/hooks/useAudio";
+import ComputerTurnLock from "src/computer/ui/ComputerTurnLock";
 
-function DiceSection() {
+function DiceSection({ locked = false }) {
   const {
     playerData,
     setPlayerData,
@@ -24,7 +26,7 @@ function DiceSection() {
   const celebrationAudio = useAudio(celebrationSound);
 
   const handlePassClick = () => {
-    if (isRolling) return;
+    if (isRolling || locked) return;
     addPlayerAudio?.play();
     let cp = currentPlayer;
     let newPlayerData = [...playerData];
@@ -121,6 +123,7 @@ function DiceSection() {
         </p>
       </div>
       <Menu />
+      <ComputerTurnLock locked={locked} />
     </div>
   );
 }
