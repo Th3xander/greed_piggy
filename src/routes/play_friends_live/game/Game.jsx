@@ -5,6 +5,9 @@ import ErrorBanner from "src/components/ErrorBanner";
 import { ERROR_CODES } from "src/constants/game";
 import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import { useLiveGameContext } from "src/context/useLiveGameContext";
+import { useComputerOpponent } from "src/computer";
+import ComputerStatus from "src/computer/ui/ComputerStatus";
+import ComputerTurnRecap from "src/computer/ui/ComputerTurnRecap";
 import PlayerTable from "./components/PlayerTable";
 import StatsSection from "./components/StatsSection";
 import GameOver from "./GameOver";
@@ -18,6 +21,9 @@ export default function LiveGame() {
   const { setIsContinue } = useLiveGameContext();
   const { phase, session, players, activePlayer, leaderboard, error, loadGame } =
     useGameSession();
+    // Plays the computer's turns. Must run once here, before the early returns below,
+    // because React needs hooks to be called in the same order on every render.
+  const computer = useComputerOpponent();
 
   useEffect(() => {
     setIsContinue(true);
@@ -81,10 +87,12 @@ export default function LiveGame() {
 
   return (
     <div className="md:grid md:grid-cols-[minmax(auto,_200px)_1fr_minmax(auto,_200px)] lg:grid-cols-[minmax(auto,_250px)_1fr_minmax(auto,_250px)] xl:grid-cols-[auto_1fr_minmax(auto,_300px)] relative">
-      <DiceSection />
+      <DiceSection locked={computer.isComputerTurn} />
       <div className=" space-y-2 p-2">
         <Navbar />
         <ErrorBanner />
+        <ComputerStatus computer={computer} />
+        <ComputerTurnRecap computer={computer} />
         <PlayerTable
           players={players}
           activePlayer={activePlayer}
@@ -98,7 +106,7 @@ export default function LiveGame() {
         playerData={players}
         currentPlayer={oldPlayerIndex}
       />
-      <DiceSectionMobile />
+      <DiceSectionMobile locked={computer.isComputerTurn} />
 
       <StatsSection
         players={players}

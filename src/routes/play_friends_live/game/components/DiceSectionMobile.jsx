@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState } from 'react'
 import { useLiveGameContext } from 'src/context/useLiveGameContext';
 import Menu from "./Menu";
@@ -6,9 +7,10 @@ import addPlayerSound from "src/sound_effect/add_player.mp3";
 import loseSound from "src/sound_effect/lose_sound.mp3";
 import celebrationSound from "src/sound_effect/celebration.mp3";
 import useAudio from "src/hooks/useAudio";
+import ComputerTurnLock from "src/computer/ui/ComputerTurnLock";
 
 
-function DiceSectionMobile() {
+function DiceSectionMobile({ locked = false }) {
   const {
     playerData,
     setPlayerData,
@@ -25,7 +27,7 @@ function DiceSectionMobile() {
   const celebrationAudio = useAudio(celebrationSound);
 
   const handlePassClick = () => {
-    if (isRolling) return;
+    if (isRolling || locked) return;
     addPlayerAudio?.play();
     let cp = currentPlayer;
     let newPlayerData = [...playerData];
@@ -93,7 +95,7 @@ function DiceSectionMobile() {
   }
 
   return (
-    <div className=" border-r-[#ffffff40] border-r md:hidden flex flex-col items-center justify-around px-2 bg-[#00000010] h-[60vh] ">
+    <div className="relative border-r-[#ffffff40] border-r md:hidden flex flex-col items-center justify-around px-2 bg-[#00000010] h-[60vh] ">
          <a
           href={"#" + (currentPlayer % playerData.length)}
           className="bg-[#056FA480] w-[200px] md:w-full  text-white text-center text-base lg:text-xl xl:text-2xl font-semibold py-2 lg:py-4 rounded border hover:scale-105 active:scale-100 duration-300"
@@ -115,6 +117,7 @@ function DiceSectionMobile() {
           <p className="text-center text-sm lg:text-lg">{playerData.length} players</p>
           <p className="text-center text-sm  lg:text-lg">{maxPoints} max points</p>
         </div>
+        <ComputerTurnLock locked={locked} />
       </div>
   )
 }
