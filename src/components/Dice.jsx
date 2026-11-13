@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react";
 import { useGreedyPigContext } from "src/context/useGreedyPigContext";
 import { useLiveGameContext } from "src/context/useLiveGameContext";
@@ -6,6 +7,7 @@ import { DIE_FACES } from "src/constants/game";
 import diceRollSound from "src/sound_effect/dice_roll.mp3";
 import loseSound from "src/sound_effect/lose_sound.mp3";
 import useAudio from "src/hooks/useAudio";
+import { registerDice } from "src/computer/ui/diceAnimator";
 
 const SHUFFLE_TICKS = 30;
 const TICK_MS = 100;
@@ -27,28 +29,34 @@ export function Dice({
   const timer = useRef(null);
   // Stops a fast second click from sending a second roll
   const rollInFlight = useRef(false);
+  const buttonRef = useRef(null);
 
   useEffect(() => () => clearInterval(timer.current), []);
 
+  // Shows the server's answer once the request is done.
+  // Returns the response (or null) so whoever started the roll gets it too.
   const finishRoll = async (request) => {
     const res = await request;
     rollInFlight.current = false;
     setIsRolling(false);
     setChangeBackground(false);
     // null = not allowed or the request failed (the error banner explains why)
-    if (!res) return;
+    if (!res) return null;
 
     // The server picked the number. Math.random() is only used for the shuffle.
     const face = Array.isArray(res.dice) ? res.dice[0] : res.dice;
     setCurrentDice(face - 1);
     setDiceValue(face);
     if (res.bust) loseAudio?.play();
+    return res;
   };
 
-    const handleDiceClick = () => {
-      if (rollInFlight.current || isRolling || isBusy || locked) return;
-      if (phase !== PHASE.PLAYING) return;
-
+  // The whole roll: shuffle with sound, THEN ask the server, then land on its number.
+  // A human click and the computer both go through here, so they look identical.
+  //   request: a function that asks the server, e.g. () => roll()
+  // Resolves with the server's response, or null if the roll failed.
+  const startRoll = (request) =>
+    new Promise((resolve) => {
       rollInFlight.current = true;
       setIsRolling(true);
       setChangeBackground(true);
@@ -63,10 +71,42 @@ export function Dice({
           clearInterval(timer.current);
           // Ask the server only once the shuffle is over, so the die and the
           // score both appear after the rolling stops.
-          finishRoll(roll());
+          resolve(finishRoll(request()));
         }
       }, TICK_MS);
-    };
+    });
+
+  // The registered entry must always call the newest startRoll (it uses the
+  // latest audio and state setters), so we keep it in a ref.
+  const startRollRef = useRef(startRoll);
+  useEffect(() => {
+    startRollRef.current = startRoll;
+  });
+
+  // Let the computer use this die (see src/computer/ui/diceAnimator.js).
+  // offsetParent is null when CSS hides the element (display: none), which is how
+  // we tell the visible die from the hidden one.
+  useEffect(
+    () =>
+      registerDice({
+        isVisible: () => buttonRef.current?.offsetParent != null,
+        run: (request) => startRollRef.current(request),
+      }),
+    []
+  );
+
+  // Keep the face in step with the server's latest roll. The die that is rolling
+  // sets it itself; this keeps the other (hidden) die and any re-render correct.
+  useEffect(() => {
+    const face = Array.isArray(lastRoll?.dice) ? lastRoll.dice[0] : lastRoll?.dice;
+    if (face && !rollInFlight.current) setCurrentDice(face - 1);
+  }, [lastRoll]);
+
+  const handleDiceClick = () => {
+    if (rollInFlight.current || isRolling || isBusy || locked) return;
+    if (phase !== PHASE.PLAYING) return;
+    startRoll(() => roll());
+  };
 
   const isDisabled = isRolling || isBusy || locked || phase !== PHASE.PLAYING;
   // Fade only when the die can't be used for a reason other than "rolling now"
@@ -76,6 +116,7 @@ export function Dice({
   return (
     <div className="flex flex-col items-center gap-2">
       <button
+        ref={buttonRef}
         className={`hover:scale-105 active:scale-100 disabled:hover:scale-100 duration-300 md:w-auto w-[200px] ${
           isFaded ? "opacity-50" : ""
         }`}
