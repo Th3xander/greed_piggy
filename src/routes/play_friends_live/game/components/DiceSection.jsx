@@ -67,38 +67,13 @@ function DiceSection({ locked = false }) {
     }
   }
 
-  function handleFinalDiceValue(diceValue) {
-    let cp = currentPlayer;
-    let newPlayerData = [...playerData];
-
-    if (diceValue === 1) {
-      loseAudio?.play();
-      newPlayerData[cp]["running_points"] = 0;
-      cp = (currentPlayer + 1) % playerData.length;
-      setCurrentPlayer(cp);
-      setDiceValue(diceValue)
-    } else {
-      setGameOverPage(
-        diceValue,
-        playerData,
-        currentPlayer,
-        maxPoints,
-        setIsGameOver,
-        celebrationAudio
-      );
-      newPlayerData[cp]["running_points"] += diceValue;
-      setPlayerData(newPlayerData);
-      setDiceValue(diceValue)
-    }
-  }
-
   return (
     <div className="h-screen border-r-[#ffffff40] border-r hidden md:flex flex-col items-center justify-around p-8 sticky top-0 bg-[#00000010] ">
-      <Dice
-        getFinalDiceValue={handleFinalDiceValue}
+            <Dice
         setIsRolling={setIsRolling}
         isRolling={isRolling}
         setChangeBackground={setChangeBackground}
+        locked={locked}
 
         // setCurrentPlayer={setCurrentPlayer}
         // currentPlayer={currentPlayer}
