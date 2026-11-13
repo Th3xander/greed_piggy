@@ -20,6 +20,7 @@ import {
   getDifficulty,
 } from "./difficulty";
 import { decideMove, MOVES } from "./strategy";
+import { rollWithAnimation } from "./ui/diceAnimator";
 
 export function useComputerOpponent({ enabled = true } = {}) {
   const { phase, isBusy, activePlayer, players, session, roll, bank } = useGameSession();
@@ -53,8 +54,11 @@ export function useComputerOpponent({ enabled = true } = {}) {
         level: activePlayer.difficulty,
       });
       setLastMove(move);
+            // A roll goes through the on-screen die so it shuffles and lands like a human's
       const res =
-        move === MOVES.ROLL ? await roll({ byComputer: true }) : await bank({ byComputer: true });
+        move === MOVES.ROLL
+          ? await rollWithAnimation(() => roll({ byComputer: true }))
+          : await bank({ byComputer: true });
       setFailures((n) => (res ? 0 : n + 1));
     }, delay);
 
