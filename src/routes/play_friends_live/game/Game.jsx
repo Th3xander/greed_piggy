@@ -7,6 +7,7 @@ import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import { useLiveGameContext } from "src/context/useLiveGameContext";
 import { useComputerOpponent } from "src/computer";
 import ComputerStatus from "src/computer/ui/ComputerStatus";
+import ComputerTurnRecap from "src/computer/ui/ComputerTurnRecap";
 import PlayerTable from "./components/PlayerTable";
 import StatsSection from "./components/StatsSection";
 import GameOver from "./GameOver";
@@ -91,6 +92,7 @@ export default function LiveGame() {
         <Navbar />
         <ErrorBanner />
         <ComputerStatus computer={computer} />
+        <ComputerTurnRecap computer={computer} />
         <PlayerTable
           players={players}
           activePlayer={activePlayer}
