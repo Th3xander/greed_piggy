@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveGameContext } from 'src/context/useLiveGameContext';
 import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import Menu from "./Menu";
@@ -19,8 +19,13 @@ function DiceSectionMobile({ locked = false }) {
   const loseAudio = useAudio(loseSound);
   const celebrationAudio = useAudio(celebrationSound);
 
-  // Stops a fast second click from sending a second bank
+    // Stops a fast second click from sending a second bank
   const bankInFlight = useRef(false);
+  // Briefly locks the button after a bank, so a double-click can't also
+  // bank for the next player
+  const [justBanked, setJustBanked] = useState(false);
+  const cooldown = useRef(null);
+  useEffect(() => () => clearTimeout(cooldown.current), []);
 
   const handlePassClick = async () => {
     if (bankInFlight.current || isRolling || isBusy || locked) return;

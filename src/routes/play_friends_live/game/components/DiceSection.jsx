@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiveGameContext } from "src/context/useLiveGameContext";
 import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import Menu from "./Menu";
@@ -21,6 +21,10 @@ function DiceSection({ locked = false }) {
   // Stops a fast second click from sending a second bank
   const bankInFlight = useRef(false);
 
+  const [justBanked, setJustBanked] = useState(false);
+  const cooldown = useRef(null);
+  useEffect(() => () => clearTimeout(cooldown.current), []);
+
   const handlePassClick = async () => {
     if (bankInFlight.current || isRolling || isBusy || locked) return;
     if (phase !== PHASE.PLAYING) return;
@@ -30,7 +34,11 @@ function DiceSection({ locked = false }) {
     const res = await bank();
     bankInFlight.current = false;
     // null = not allowed, or the request failed (the error banner says why)
-    if (res) addPlayerAudio?.play();
+     if (res) {
+      addPlayerAudio?.play();
+      setJustBanked(true);
+      cooldown.current = setTimeout(() => setJustBanked(false), 700);
+    }
   };
 
   function setGameOverPage(
@@ -61,7 +69,8 @@ function DiceSection({ locked = false }) {
     }
   }
 
-  const isDisabled = isRolling || isBusy || locked || phase !== PHASE.PLAYING;
+    const isDisabled =
+    isRolling || isBusy || locked || justBanked || phase !== PHASE.PLAYING;
 
   return (
     <div className="h-screen border-r-[#ffffff40] border-r hidden md:flex flex-col items-center justify-around p-8 sticky top-0 bg-[#00000010] ">
