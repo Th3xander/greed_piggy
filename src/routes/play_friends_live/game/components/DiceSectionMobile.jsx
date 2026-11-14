@@ -5,8 +5,6 @@ import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import Menu from "./Menu";
 import { Dice } from "src/components/Dice";
 import addPlayerSound from "src/sound_effect/add_player.mp3";
-import loseSound from "src/sound_effect/lose_sound.mp3";
-import celebrationSound from "src/sound_effect/celebration.mp3";
 import useAudio from "src/hooks/useAudio";
 import ComputerTurnLock from "src/computer/ui/ComputerTurnLock";
 
@@ -16,9 +14,6 @@ function DiceSectionMobile({ locked = false }) {
   const { bank, isBusy, phase, players, session } = useGameSession();
   const [isRolling, setIsRolling] = useState(false)
   const addPlayerAudio = useAudio(addPlayerSound);
-  const loseAudio = useAudio(loseSound);
-  const celebrationAudio = useAudio(celebrationSound);
-
     // Stops a fast second click from sending a second bank
   const bankInFlight = useRef(false);
   // Briefly locks the button after a bank, so a double-click can't also
@@ -34,38 +29,16 @@ function DiceSectionMobile({ locked = false }) {
     bankInFlight.current = true;
     const res = await bank();
     bankInFlight.current = false;
-    if (res) addPlayerAudio?.play();
+    if (res) {
+      addPlayerAudio?.play();
+      setJustBanked(true);
+      cooldown.current = setTimeout(() => setJustBanked(false), 700);
+    }
   };
 
-  function setGameOverPage(
-    diceValue,
-    playerData,
-    currentPlayer,
-    maxPoints,
-    setIsGameOver,
-    celebrationAudio
-  ) {
-    let currentPoint =
-      playerData[currentPlayer].running_points +
-      playerData[currentPlayer].total_points +
-      diceValue;
-    let interval
-    let endRoll = 0
 
-    if (currentPoint >= maxPoints) {
-      interval = setInterval(() => {
-        if (endRoll < 10) {
-          endRoll++;
-        } else {
-          celebrationAudio?.play()
-          setIsGameOver(true);
-          clearInterval(interval);
-        }
-      }, 100);
-    }
-  }
-
-  const isDisabled = isRolling || isBusy || locked || phase !== PHASE.PLAYING;
+    const isDisabled =
+    isRolling || isBusy || locked || justBanked || phase !== PHASE.PLAYING;
 
   return (
     <div className="relative border-r-[#ffffff40] border-r md:hidden flex flex-col items-center justify-around px-2 bg-[#00000010] h-[60vh] ">
