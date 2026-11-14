@@ -5,8 +5,6 @@ import { useGameSession, PHASE } from "src/context/GameSessionContext";
 import Menu from "./Menu";
 import { Dice } from "src/components/Dice";
 import addPlayerSound from "src/sound_effect/add_player.mp3";
-import loseSound from "src/sound_effect/lose_sound.mp3";
-import celebrationSound from "src/sound_effect/celebration.mp3";
 import useAudio from "src/hooks/useAudio";
 import ComputerTurnLock from "src/computer/ui/ComputerTurnLock";
 
@@ -15,8 +13,6 @@ function DiceSection({ locked = false }) {
   const { bank, isBusy, phase, players, session } = useGameSession();
   const [isRolling, setIsRolling] = useState(false);
   const addPlayerAudio = useAudio(addPlayerSound);
-  const loseAudio = useAudio(loseSound);
-  const celebrationAudio = useAudio(celebrationSound);
 
   // Stops a fast second click from sending a second bank
   const bankInFlight = useRef(false);
@@ -30,46 +26,16 @@ function DiceSection({ locked = false }) {
     if (phase !== PHASE.PLAYING) return;
 
     bankInFlight.current = true;
-    // The server adds the turn score to the total and moves to the next player.
     const res = await bank();
     bankInFlight.current = false;
-    // null = not allowed, or the request failed (the error banner says why)
-     if (res) {
+    if (res) {
       addPlayerAudio?.play();
       setJustBanked(true);
       cooldown.current = setTimeout(() => setJustBanked(false), 700);
     }
   };
 
-  function setGameOverPage(
-    diceValue,
-    playerData,
-    currentPlayer,
-    maxPoints,
-    setIsGameOver,
-    celebrationAudio
-  ) {
-    let currentPoint =
-      playerData[currentPlayer].running_points +
-      playerData[currentPlayer].total_points +
-     diceValue
-    let interval;
-    let endRoll = 0;
-
-    if (currentPoint >= maxPoints) {
-      interval = setInterval(() => {
-        if (endRoll < 10) {
-          endRoll++;
-        } else {
-          celebrationAudio?.play();
-          setIsGameOver(true);
-          clearInterval(interval);
-        }
-      }, 100);
-    }
-  }
-
-    const isDisabled =
+  const isDisabled =
     isRolling || isBusy || locked || justBanked || phase !== PHASE.PLAYING;
 
   return (
